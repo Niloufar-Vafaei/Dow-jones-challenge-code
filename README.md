@@ -33,5 +33,3 @@ Add a form-data body to the request with a key value of 'file', and a type of Fi
 
 (NOTE: Swagger http://localhost:8080/swagger-ui/index.html)
 
-# Dow-jones-challenge-code
-# Dow-jones-challenge-code
