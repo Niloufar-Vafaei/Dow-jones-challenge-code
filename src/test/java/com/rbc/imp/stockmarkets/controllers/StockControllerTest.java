@@ -3,21 +3,10 @@ package com.rbc.imp.stockmarkets.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.rbc.imp.stockmarkets.mappers.Mapper;
+import com.rbc.imp.stockmarkets.models.DowJonesIndex;
 import com.rbc.imp.stockmarkets.models.DowJonesIndexDTO;
-import com.rbc.imp.stockmarkets.services.AsyncStockService;
-
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
+import com.rbc.imp.stockmarkets.services.IAsyncStockService;
 import com.rbc.imp.stockmarkets.util.CsvFileReader;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -36,6 +25,17 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(StockController.class)
@@ -45,7 +45,7 @@ public class StockControllerTest {
     private MockMvc mvcController;
 
     @MockBean
-    private AsyncStockService service;
+    private IAsyncStockService service;
 
     @MockBean
     private CsvFileReader csvFileReader;
@@ -152,13 +152,14 @@ public class StockControllerTest {
     }
 
     @Test
-    public void givenDowJonesFile_whenCallUploadStock_thenReturn()
-            throws Exception {
+    public void givenDowJonesFile_whenCallUploadStock_thenReturn() throws Exception {
         //Given
+        final var mockDowJonesIndexList = getMockDowJonesIndexList();
         final var mockFile = getMockFile();
+        given(csvFileReader.readFile(mockFile))
+                .willReturn(CompletableFuture.completedFuture(mockDowJonesIndexList));
 
-        service.addStockTickers(Mockito.any());
-        csvFileReader.readFile(mockFile);
+        service.addStockTickers(mockDowJonesIndexList);
 
         //When
         final var mvcResult = mvcController
@@ -176,6 +177,14 @@ public class StockControllerTest {
 
     private MockMultipartFile getMockFile() {
         return new MockMultipartFile("file", "filename.txt", "text/plain", "some xml".getBytes());
+    }
+    private List<DowJonesIndex> getMockDowJonesIndexList() {
+        var dowJonesIndex = new DowJonesIndex();
+        dowJonesIndex.setDate("1/1/2019");
+        dowJonesIndex.setQuarter(1);
+        dowJonesIndex.setStock("AA");
+
+        return new ArrayList<>(List.of(dowJonesIndex));
 
     }
 }

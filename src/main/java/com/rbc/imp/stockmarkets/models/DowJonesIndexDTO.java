@@ -1,5 +1,6 @@
 package com.rbc.imp.stockmarkets.models;
 
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 import lombok.*;
@@ -10,12 +11,15 @@ import lombok.*;
 public class DowJonesIndexDTO {
 
     @NotNull
+    @NotEmpty
     private String quarter;
 
     @NotNull
+    @NotEmpty
     private String stock;
 
     @NotNull
+    @NotEmpty
     private String date;
 
     private String open;

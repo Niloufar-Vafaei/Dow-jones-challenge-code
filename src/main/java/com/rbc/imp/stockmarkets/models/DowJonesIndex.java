@@ -14,7 +14,7 @@ import java.io.Serializable;
 @Setter
 @ToString
 @Entity
-@Table
+@Table(uniqueConstraints = @UniqueConstraint(columnNames ={"stock","date"}))
 public class DowJonesIndex implements Serializable {
 
     @Id
@@ -22,12 +22,15 @@ public class DowJonesIndex implements Serializable {
     @Column(name = "id")
     public Long id;
 
+    @NonNull
     @Column(name = "quarter")
     private Integer quarter;
 
+    @NonNull
     @Column(name = "stock")
     private String stock;
 
+    @NonNull
     @Column(name = "date")
     private String date;
 

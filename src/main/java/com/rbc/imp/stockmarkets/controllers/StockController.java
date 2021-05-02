@@ -1,7 +1,8 @@
 package com.rbc.imp.stockmarkets.controllers;
 
+import com.rbc.imp.stockmarkets.exceptions.GlobalException;
 import com.rbc.imp.stockmarkets.models.DowJonesIndexDTO;
-import com.rbc.imp.stockmarkets.services.AsyncStockService;
+import com.rbc.imp.stockmarkets.services.IAsyncStockService;
 import com.rbc.imp.stockmarkets.util.CsvFileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,8 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import javax.validation.Valid;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,50 +21,59 @@ import java.util.concurrent.CompletableFuture;
 
 public class StockController {
 
-    private final AsyncStockService asyncStockService;
+    private final IAsyncStockService asyncStockService;
     private final CsvFileReader csvFileReader;
 
     @Autowired
-    public StockController(AsyncStockService asyncStockService,CsvFileReader csvFileReader) {
+    public StockController(IAsyncStockService asyncStockService, CsvFileReader csvFileReader) {
         this.asyncStockService = asyncStockService;
-        this.csvFileReader =csvFileReader;
+        this.csvFileReader = csvFileReader;
     }
 
+    //Its depend of consumer to be much familiar with version in side url or header
+    //ex: put version in url help developer to figure out in first moment which version of service has bug
+    //put version in header help if your services does not have version much more easiest way
+    // is put it in side header.
+    //if i want to pass data through url would be look like /getByStockTickerAndQuarter/{stockTicker}/{quarter}
+    //and ues @PathVariable for reading data
+    // i think use get and block the result because we want to be sure get all of the result and after
+    // that pass them to response body
+    //I use supplyAsync because i want to return some result from my background task
+    //we usually have many ways to achieve the same goal in spring boot one of them is
+    //defining response class or using ResponseEntity
+    //Pagination handle with Pageable and Page spring framework
     @GetMapping(value = "getByStockTickerAndQuarter", headers = "version=1")
-    public CompletableFuture<ResponseEntity<List<DowJonesIndexDTO>>> getByStockTickerAndQuarter(@Valid @RequestParam("stockTicker") String stockTicker,
-                                                                                                @RequestParam("quarter") Integer quarter) {
-        try {
-            final List<DowJonesIndexDTO> results = asyncStockService.getStocksByStockTickerAndQuarter(stockTicker, quarter).get();
-            return CompletableFuture.supplyAsync(() -> ResponseEntity.ok().body(results));
-        } catch (Exception e) {
+    public CompletableFuture<ResponseEntity<List<DowJonesIndexDTO>>>
+    getByStockTickerAndQuarter(@Valid @RequestParam("stockTicker") String stockTicker, @RequestParam("quarter") Integer quarter) {
 
-            return CompletableFuture.supplyAsync(() ->
-                    ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ArrayList<>()));
-        }
+
+        return asyncStockService.getStocksByStockTickerAndQuarter(stockTicker, quarter)
+                .thenApply(dowJonesIndexDTOList -> {
+                    if (dowJonesIndexDTOList.isEmpty())
+                        return ResponseEntity.notFound().build();
+                    else
+                        return ResponseEntity.ok().body(dowJonesIndexDTOList);
+                });
     }
 
     @PostMapping(value = "/addStockTicker", headers = "version=1")
     public CompletableFuture<ResponseEntity<DowJonesIndexDTO>> addStockTicker(@Valid @RequestBody DowJonesIndexDTO dowJonesIndexDTO) {
-        try {
-            final DowJonesIndexDTO result = asyncStockService.addStockTicker(dowJonesIndexDTO).get();
-            return CompletableFuture.supplyAsync(() -> ResponseEntity.ok().body(result));
-        } catch (Exception e) {
-            return CompletableFuture.supplyAsync(() ->
-                    ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new DowJonesIndexDTO()));
-        }
+
+        return asyncStockService.addStockTicker(dowJonesIndexDTO)
+                .thenApply(ResponseEntity::ok)
+                .exceptionally(throwable -> {
+                    throw new GlobalException(throwable);
+                });
     }
 
     @PostMapping(value = "/uploadStock", headers = "version=1")
-    public CompletableFuture<ResponseEntity<String>> uploadStock(@Valid @RequestParam("file") MultipartFile file) {
-        try {
-            var data = csvFileReader.readFile(file);
-            asyncStockService.addStockTickers(data);
-            return CompletableFuture.supplyAsync(() -> ResponseEntity.ok().body("The file has been uploaded successfully: " + file.getOriginalFilename()));
-        } catch (Exception e) {
-            String message = "Could not upload the file: " + file.getOriginalFilename() + "!";
-            return CompletableFuture.supplyAsync(() ->
-                    ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message));
-        }
+    public CompletableFuture<ResponseEntity<String>> uploadStock(@Valid @RequestParam("file") MultipartFile file) throws IOException {
+        return csvFileReader.readFile(file)
+                .thenAccept(asyncStockService::addStockTickers)
+                .thenApply(e -> ResponseEntity.ok("The file has been uploaded successfully: " + file.getOriginalFilename()))
+                .exceptionally(throwable -> ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+                        .body("Could not upload the file: " + file.getOriginalFilename() + "!"));
+
     }
 
 }
