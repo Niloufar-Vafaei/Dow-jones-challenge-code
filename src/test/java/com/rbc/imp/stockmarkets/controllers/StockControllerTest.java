@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -186,5 +187,24 @@ public class StockControllerTest {
 
         return new ArrayList<>(List.of(dowJonesIndex));
 
+    }
+    @Test
+    public void givenEmptyMockFile_WhenCallFileReader_ReturnIOException() throws Exception {
+
+        final var mockFile = getMockFile();
+        //given
+        given(csvFileReader.readFile(mockFile))
+                .willThrow(new IOException());
+
+        //when
+        final var mvcResult = mvcController
+                .perform(MockMvcRequestBuilders.multipart("/api/stocks/uploadStock")
+                        .file(mockFile)
+                        .header("version", 1))
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn();
+        //Then
+        mvcController.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isExpectationFailed());
     }
 }
