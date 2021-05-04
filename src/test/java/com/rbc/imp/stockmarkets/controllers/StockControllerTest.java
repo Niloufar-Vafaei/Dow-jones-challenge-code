@@ -116,7 +116,7 @@ public class StockControllerTest {
         final var mockData = getDowJonesDataSetDTO();
         given(service.addStockTicker(Mockito.any()))
                 .willReturn(CompletableFuture.completedFuture(mockData));
-
+        //mapper for convert object to JSON
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.WRAP_ROOT_VALUE, false);
         ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();

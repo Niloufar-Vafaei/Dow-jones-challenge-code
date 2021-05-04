@@ -39,6 +39,7 @@ public class StockController {
             return CompletableFuture.supplyAsync(() ->
                     ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ArrayList<>()));
         }
+
     }
 
     @PostMapping(value = "/addStockTicker", headers = "version=1")
