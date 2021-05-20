@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface DowJonesIndexRepository extends JpaRepository<DowJonesIndex, Long> {
+public interface IDowJonesIndexRepository extends JpaRepository<DowJonesIndex, Long>  {
 
     List<DowJonesIndex> findByStockAndQuarterOrderById(String stock, Integer quarter);
 }
