@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.rbc.imp.stockmarkets.mappers.IMapper;
-import com.rbc.imp.stockmarkets.models.DowJonesIndex;
-import com.rbc.imp.stockmarkets.models.DowJonesIndexDTO;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
